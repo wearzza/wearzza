@@ -7,7 +7,29 @@ export const supabase = createClient(
 
 export type SellerStatus = 'pending' | 'approved' | 'rejected' | 'banned';
 export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-export type ProductCategory = 'men' | 'women' | 'streetwear' | 'budget' | 'kids' | 'old_money';
+export type ProductCategory = 'men' | 'women' | 'streetwear' | 'budget' | 'kids' | 'old_money' | string;
+
+export interface Category {
+  id: string;
+  slug: string;
+  label: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  password_hash: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Banner {
   id: string;

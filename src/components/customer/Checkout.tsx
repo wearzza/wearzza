@@ -12,7 +12,7 @@ interface Props {
 export default function Checkout({ onBack, onSuccess }: Props) {
   const { items, totalPrice, clearCart } = useCart();
   const [form, setForm] = useState({
-    name: '', phone: '', address: '',
+    name: '', phone: '',
     province: '', district: '', municipality: '', ward_number: '', map_url: '',
     promoCode: '', notes: '',
   });
@@ -47,7 +47,7 @@ export default function Checkout({ onBack, onSuccess }: Props) {
   }
 
   async function placeOrder() {
-    if (!form.name.trim() || !form.phone.trim() || !form.address.trim() || items.length === 0) return;
+    if (!form.name.trim() || !form.phone.trim() || items.length === 0) return;
     if (!form.province || !form.district || !form.municipality || !form.ward_number) return;
     setSubmitting(true);
 
@@ -68,7 +68,7 @@ export default function Checkout({ onBack, onSuccess }: Props) {
       const total = Math.max(0, subtotal - sellerPromo);
 
       const { data: order } = await supabase.from('orders').insert({
-        customer_name: form.name, customer_phone: form.phone, customer_address: form.address, customer_location: locationStr,
+        customer_name: form.name, customer_phone: form.phone, customer_address: locationStr, customer_location: locationStr,
         province: form.province, district: form.district, municipality: form.municipality,
         ward_number: form.ward_number ? +form.ward_number : null, map_url: form.map_url || null,
         seller_id: sellerId, promo_code: promoApplied ? form.promoCode.toUpperCase() : null, promo_discount: sellerPromo,
@@ -121,10 +121,6 @@ export default function Checkout({ onBack, onSuccess }: Props) {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5"><Phone size={14} /> Phone Number *</label>
               <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="98XXXXXXXX" className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5"><MapPin size={14} /> Street / House Address *</label>
-              <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} rows={2} placeholder="House no, street, area, landmark..." className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400 resize-none" />
             </div>
 
             {/* Structured Location */}
@@ -210,7 +206,7 @@ export default function Checkout({ onBack, onSuccess }: Props) {
               <p className="text-xs text-gray-500">Pay when you receive your order</p>
             </div>
 
-            <button onClick={placeOrder} disabled={submitting || !form.name.trim() || !form.phone.trim() || !form.address.trim() || !locationReady}
+            <button onClick={placeOrder} disabled={submitting || !form.name.trim() || !form.phone.trim() || !locationReady}
               className="w-full mt-4 py-4 rounded-2xl font-bold text-white text-sm disabled:opacity-50 transition-all hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(135deg, #ff3b30 0%, #e8251a 100%)' }}>
               {submitting ? 'Placing Order...' : `Place Order • Rs. ${grandTotal.toLocaleString()}`}

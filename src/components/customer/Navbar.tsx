@@ -1,6 +1,8 @@
 import { ShoppingCart, Search, Menu, X, User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../contexts/CartContext';
+import { useCustomer } from '../../contexts/CustomerContext';
+import { supabase, Category } from '../../lib/supabase';
 
 interface Props {
   onCartOpen: () => void;
@@ -8,22 +10,21 @@ interface Props {
   searchQuery: string;
   onPageChange: (p: string) => void;
   currentPage: string;
+  onAuthOpen: () => void;
 }
 
-const NAV = [
-  { id: 'home', label: 'Home' },
-  { id: 'men', label: 'Men' },
-  { id: 'women', label: 'Women' },
-  { id: 'kids', label: 'Kids' },
-  { id: 'streetwear', label: 'Streetwear' },
-  { id: 'old_money', label: 'Old Money' },
-  { id: 'budget', label: 'Budget Deals' },
-];
-
-export default function Navbar({ onCartOpen, onSearch, searchQuery, onPageChange, currentPage }: Props) {
+export default function Navbar({ onCartOpen, onSearch, searchQuery, onPageChange, currentPage, onAuthOpen }: Props) {
   const { totalItems } = useCart();
+  const { customer } = useCustomer();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cats, setCats] = useState<Category[]>([]);
+
+  useEffect(() => {
+    supabase.from('categories').select('*').eq('is_active', true).order('sort_order', { ascending: true }).then(({ data }) => setCats(data || []));
+  }, []);
+
+  const nav = [{ id: 'home', label: 'Home' }, ...cats.map(c => ({ id: c.slug, label: c.label }))];
 
   return (
     <nav className="sticky top-0 z-40 bg-white border-b border-gray-100" style={{ boxShadow: '0 2px 20px rgba(0,0,0,0.06)' }}>
@@ -52,6 +53,9 @@ export default function Navbar({ onCartOpen, onSearch, searchQuery, onPageChange
             </button>
             <button onClick={() => onPageChange('orders')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
               <User size={16} /><span>Orders</span>
+            </button>
+            <button onClick={onAuthOpen} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: customer ? '#fff1f0' : 'transparent', color: customer ? '#ff3b30' : '#4b5563' }}>
+              <User size={16} /><span className="hidden sm:inline">{customer ? customer.name.split(' ')[0] : 'Login'}</span>
             </button>
             <button onClick={onCartOpen} className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-red-50 transition-colors">
               <ShoppingCart size={18} className="text-gray-700" />
@@ -84,7 +88,7 @@ export default function Navbar({ onCartOpen, onSearch, searchQuery, onPageChange
         )}
 
         <div className="hidden md:flex items-center gap-1 pb-2">
-          {NAV.map(l => (
+          {nav.map(l => (
             <button
               key={l.id}
               onClick={() => onPageChange(l.id)}
@@ -102,7 +106,7 @@ export default function Navbar({ onCartOpen, onSearch, searchQuery, onPageChange
 
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-1">
-          {NAV.map(l => (
+          {nav.map(l => (
             <button
               key={l.id}
               onClick={() => { onPageChange(l.id); setMobileOpen(false); }}

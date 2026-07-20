@@ -7,6 +7,7 @@ import ProductDetail from './ProductDetail';
 import Checkout from './Checkout';
 import OrdersPage from './OrdersPage';
 import CartDrawer from './CartDrawer';
+import CustomerAuth from './CustomerAuth';
 import { Product } from '../../lib/supabase';
 
 interface Props {
@@ -14,13 +15,14 @@ interface Props {
   onAdminLogin: () => void;
 }
 
-type Page = 'home' | 'men' | 'women' | 'streetwear' | 'budget' | 'product' | 'checkout' | 'orders' | 'success';
+type Page = 'home' | 'product' | 'checkout' | 'orders' | 'success' | string;
 
 export default function CustomerPanel({ onSellerLogin, onAdminLogin }: Props) {
   const [page, setPage] = useState<Page>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
 
   function navigate(p: string) {
@@ -30,12 +32,12 @@ export default function CustomerPanel({ onSellerLogin, onAdminLogin }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar onCartOpen={() => setCartOpen(true)} onSearch={setSearchQuery} searchQuery={searchQuery} onPageChange={navigate} currentPage={page} />
+      <Navbar onCartOpen={() => setCartOpen(true)} onSearch={setSearchQuery} searchQuery={searchQuery} onPageChange={navigate} currentPage={page} onAuthOpen={() => setAuthOpen(true)} />
 
       <main className="flex-1">
         {page === 'home' && <HomePage onProductClick={p => { setSelectedProduct(p); setPage('product'); window.scrollTo({ top: 0 }); }} onCategoryClick={navigate} searchQuery={searchQuery} />}
 
-        {(page === 'men' || page === 'women' || page === 'streetwear' || page === 'budget') && (
+        {page !== 'home' && page !== 'product' && page !== 'checkout' && page !== 'orders' && page !== 'success' && (
           <CategoryPage category={page} searchQuery={searchQuery} onProductClick={p => { setSelectedProduct(p); setPage('product'); window.scrollTo({ top: 0 }); }} />
         )}
 
@@ -63,6 +65,7 @@ export default function CustomerPanel({ onSellerLogin, onAdminLogin }: Props) {
 
       <Footer onSellerLogin={onSellerLogin} onAdminLogin={onAdminLogin} />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={() => { setPage('checkout'); window.scrollTo({ top: 0 }); }} />
+      {authOpen && <CustomerAuth onClose={() => setAuthOpen(false)} />}
     </div>
   );
 }

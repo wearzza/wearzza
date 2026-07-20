@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase, Seller, Order, PromoCode, Banner } from '../../lib/supabase';
-import { Shield, Store, ShoppingBag, Tag, BarChart3, Bell, LogOut, Check, X, Ban, TrendingUp, Package, Image, Plus, Edit, Trash2, Upload } from 'lucide-react';
+import { supabase, Seller, Order, PromoCode, Banner, Category } from '../../lib/supabase';
+import { Shield, Store, ShoppingBag, Tag, BarChart3, Bell, LogOut, Check, X, Ban, TrendingUp, Package, Image, Plus, Edit, Trash2, Upload, LayoutGrid } from 'lucide-react';
 
-type Tab = 'analytics' | 'sellers' | 'orders' | 'promos' | 'banners' | 'notifications';
+type Tab = 'analytics' | 'sellers' | 'orders' | 'promos' | 'banners' | 'notifications' | 'categories';
 
 export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('analytics');
@@ -13,6 +13,7 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
     { id: 'orders', label: 'Orders', icon: ShoppingBag },
     { id: 'promos', label: 'Promo Codes', icon: Tag },
     { id: 'banners', label: 'Banners', icon: Image },
+    { id: 'categories', label: 'Categories', icon: LayoutGrid },
     { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
@@ -40,6 +41,7 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {tab === 'orders' && <OrdersTab />}
         {tab === 'promos' && <PromosTab />}
         {tab === 'banners' && <BannersTab />}
+        {tab === 'categories' && <CategoriesTab />}
         {tab === 'notifications' && <NotificationsTab />}
       </main>
     </div>
@@ -309,6 +311,87 @@ function PromosTab() {
               <button onClick={() => toggle(p.id, p.is_active)} className="w-full mt-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 hover:border-red-400 transition-colors">{p.is_active ? 'Disable' : 'Enable'}</button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoriesTab() {
+  const [cats, setCats] = useState<Category[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [form, setForm] = useState({ label: '', slug: '', icon: '📦', color: '#6b7280', sort_order: 0, is_active: true });
+
+  async function load() { const { data } = await supabase.from('categories').select('*').order('sort_order', { ascending: true }); setCats(data || []); }
+  useEffect(() => { load(); }, []);
+
+  function reset() { setForm({ label: '', slug: '', icon: '📦', color: '#6b7280', sort_order: 0, is_active: true }); setEditing(null); }
+
+  function startEdit(c: Category) {
+    setEditing(c);
+    setForm({ label: c.label, slug: c.slug, icon: c.icon, color: c.color, sort_order: c.sort_order, is_active: c.is_active });
+    setShowForm(true);
+  }
+
+  async function save() {
+    if (!form.label) return;
+    const slug = form.slug || form.label.toLowerCase().replace(/\s+/g, '_');
+    const payload = { label: form.label, slug, icon: form.icon, color: form.color, sort_order: form.sort_order, is_active: form.is_active, updated_at: new Date().toISOString() };
+    if (editing) await supabase.from('categories').update(payload).eq('id', editing.id);
+    else await supabase.from('categories').insert(payload);
+    setShowForm(false); reset(); load();
+  }
+
+  async function del(id: string) { if (!confirm('Delete this category? Products in it will remain but lose this menu link.')) return; await supabase.from('categories').delete().eq('id', id); load(); }
+
+  async function toggleActive(c: Category) { await supabase.from('categories').update({ is_active: !c.is_active, updated_at: new Date().toISOString() }).eq('id', c.id); load(); }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-black text-gray-900">Categories (Menu)</h1>
+        <button onClick={() => { reset(); setShowForm(true); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg, #1a2340, #2a3360)' }}><Plus size={16} /> Add Category</button>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">These categories appear in the customer navbar and homepage. Add or remove menu items here.</p>
+
+      {cats.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}><LayoutGrid size={48} className="mx-auto text-gray-200 mb-4" /><p className="text-gray-500 font-medium">No categories yet</p></div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {cats.map(c => (
+            <div key={c.id} className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: c.color + '15' }}>{c.icon}</div>
+                <div className="flex-1"><p className="font-bold text-gray-800">{c.label}</p><p className="text-xs text-gray-400">/{c.slug} • Order {c.sort_order}</p></div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${c.is_active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>{c.is_active ? 'Active' : 'Hidden'}</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => toggleActive(c)} className="flex-1 py-1.5 rounded-lg text-xs font-bold border border-gray-200 hover:border-green-400 transition-colors">{c.is_active ? 'Hide' : 'Show'}</button>
+                <button onClick={() => startEdit(c)} className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 hover:border-blue-400 transition-colors"><Edit size={14} className="text-gray-600" /></button>
+                <button onClick={() => del(c.id)} className="w-8 h-8 rounded-lg flex items-center justify-center border border-red-200 hover:bg-red-50 transition-colors"><Trash2 size={14} className="text-red-500" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
+          <div className="bg-white rounded-3xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit Category' : 'Add Category'}</h2>
+            <div className="space-y-3">
+              <div><label className="text-sm font-medium text-gray-700 mb-1 block">Label *</label><input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Accessories" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400" /></div>
+              <div><label className="text-sm font-medium text-gray-700 mb-1 block">Slug (URL key)</label><input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="auto from label if empty" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">Icon (emoji)</label><input value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400" /></div>
+                <div><label className="text-sm font-medium text-gray-700 mb-1 block">Color</label><input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="w-full h-10 rounded-xl border border-gray-200 cursor-pointer" /></div>
+              </div>
+              <div><label className="text-sm font-medium text-gray-700 mb-1 block">Sort Order</label><input type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: +e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400" /></div>
+              <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl hover:bg-gray-50 transition-colors"><input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="w-4 h-4 accent-red-500" /><span className="text-sm text-gray-700">Show in customer menu</span></label>
+              <button onClick={save} disabled={!form.label} className="w-full py-3.5 rounded-xl font-bold text-white text-sm disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #1a2340, #2a3360)' }}>{editing ? 'Update Category' : 'Create Category'}</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

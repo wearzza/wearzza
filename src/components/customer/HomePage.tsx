@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Product, Seller, Banner } from '../../lib/supabase';
+import { supabase, Product, Seller, Banner, Category } from '../../lib/supabase';
 import ProductCard from './ProductCard';
 import { Shield, TrendingUp, Tag, Truck, ChevronRight } from 'lucide-react';
 
@@ -9,32 +9,26 @@ interface Props {
   searchQuery: string;
 }
 
-const CATEGORIES = [
-  { id: 'men', label: 'Men', icon: '👔', color: '#3b82f6' },
-  { id: 'women', label: 'Women', icon: '👗', color: '#ec4899' },
-  { id: 'kids', label: 'Kids', icon: '👶', color: '#f59e0b' },
-  { id: 'streetwear', label: 'Streetwear', icon: '🧢', color: '#8b5cf6' },
-  { id: 'old_money', label: 'Old Money', icon: '💼', color: '#1a2340' },
-  { id: 'budget', label: 'Budget Deals', icon: '💰', color: '#22c55e' },
-];
-
 export default function HomePage({ onProductClick, onCategoryClick, searchQuery }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [banner, setBanner] = useState<Banner | null>(null);
+  const [cats, setCats] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [p, s, b] = await Promise.all([
+      const [p, s, b, c] = await Promise.all([
         supabase.from('products').select('*, sellers!inner(*)').eq('is_active', true).order('created_at', { ascending: false }).limit(24),
         supabase.from('sellers').select('*').eq('status', 'approved').limit(12),
         supabase.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true }).limit(1).maybeSingle(),
+        supabase.from('categories').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
       ]);
       setProducts(p.data || []);
       setSellers(s.data || []);
       setBanner(b.data as Banner || null);
+      setCats(c.data || []);
       setLoading(false);
     }
     load();
@@ -68,7 +62,7 @@ export default function HomePage({ onProductClick, onCategoryClick, searchQuery 
   }
 
   const featured = filtered.slice(0, 10);
-  const budgetDeals = filtered.filter(p => p.category === 'budget').slice(0, 5);
+  const budgetDeals = filtered.filter(p => (p.categories && p.categories.length > 0 ? p.categories : [p.category]).includes('budget')).slice(0, 5);
 
   return (
     <div className="pb-8">
@@ -96,10 +90,10 @@ export default function HomePage({ onProductClick, onCategoryClick, searchQuery 
       <div className="max-w-7xl mx-auto px-4 mt-6">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Shop by Category</h2>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
-          {CATEGORIES.map(cat => (
+          {cats.map(cat => (
             <button
               key={cat.id}
-              onClick={() => onCategoryClick(cat.id)}
+              onClick={() => onCategoryClick(cat.slug)}
               className="flex flex-col items-center gap-2 p-3 sm:p-4 bg-white rounded-2xl hover:shadow-lg transition-all hover:-translate-y-1"
               style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}
             >

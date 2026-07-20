@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CartProvider } from './contexts/CartContext';
 import { SellerProvider, useSeller } from './contexts/SellerContext';
+import { CustomerProvider } from './contexts/CustomerContext';
 import SplashScreen from './components/SplashScreen';
 import CustomerPanel from './components/customer/CustomerPanel';
 import SellerAuth from './components/seller/SellerAuth';
@@ -41,9 +42,11 @@ function AppInner() {
 export default function App() {
   return (
     <SellerProvider>
+      <CustomerProvider>
       <CartProvider>
         <AppInner />
       </CartProvider>
+      </CustomerProvider>
     </SellerProvider>
   );
 }

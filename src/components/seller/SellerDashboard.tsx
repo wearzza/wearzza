@@ -143,15 +143,16 @@ function ProductsTab({ seller }: { seller: Seller }) {
   const [videoData, setVideoData] = useState<string>('');
   const [videoName, setVideoName] = useState<string>('');
 
-  const ALL_CATS: { id: ProductCategory; label: string }[] = [
-    { id: 'men', label: 'Men' }, { id: 'women', label: 'Women' }, { id: 'kids', label: 'Kids' },
-    { id: 'streetwear', label: 'Streetwear' }, { id: 'old_money', label: 'Old Money' }, { id: 'budget', label: 'Budget Deals' },
-  ];
+  const [cats, setCats] = useState<{ slug: string; label: string }[]>([]);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from('products').select('*').eq('seller_id', seller.id).order('created_at', { ascending: false });
-    setProducts(data || []);
+    const [p, c] = await Promise.all([
+      supabase.from('products').select('*').eq('seller_id', seller.id).order('created_at', { ascending: false }),
+      supabase.from('categories').select('slug, label').eq('is_active', true).order('sort_order', { ascending: true }),
+    ]);
+    setProducts(p.data || []);
+    setCats(c.data || []);
     setLoading(false);
   }
   useEffect(() => { load(); }, [seller.id]);
@@ -255,10 +256,10 @@ function ProductsTab({ seller }: { seller: Seller }) {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1.5 block">Categories * (select one or more)</label>
                 <div className="flex flex-wrap gap-2">
-                  {ALL_CATS.map(c => (
-                    <button key={c.id} type="button" onClick={() => toggleCategory(c.id)} className="px-3 py-1.5 rounded-full text-xs font-bold transition-all capitalize"
-                      style={{ background: form.categories.includes(c.id) ? '#ff3b30' : '#f3f4f6', color: form.categories.includes(c.id) ? 'white' : '#6b7280' }}>
-                      {c.label.replace('_', ' ')}
+                  {cats.map(c => (
+                    <button key={c.slug} type="button" onClick={() => toggleCategory(c.slug as ProductCategory)} className="px-3 py-1.5 rounded-full text-xs font-bold transition-all capitalize"
+                      style={{ background: form.categories.includes(c.slug as ProductCategory) ? '#ff3b30' : '#f3f4f6', color: form.categories.includes(c.slug as ProductCategory) ? 'white' : '#6b7280' }}>
+                      {c.label}
                     </button>
                   ))}
                 </div>
